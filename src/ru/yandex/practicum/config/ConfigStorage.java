@@ -1,4 +1,4 @@
-package ru.yandex.practicum;
+package ru.yandex.practicum.config;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -17,7 +17,7 @@ public class ConfigStorage {
         this.log = log;
     }
 
-    ConfigHMAC load() throws IOException {
+    public ConfigHMAC load() throws IOException {
         Gson gson = new GsonBuilder()
                 .setPrettyPrinting()
                 .create();

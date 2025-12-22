@@ -1,4 +1,4 @@
-package ru.yandex.practicum;
+package ru.yandex.practicum.config;
 
 import java.util.Base64;
 
