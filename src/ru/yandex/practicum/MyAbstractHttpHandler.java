@@ -37,6 +37,13 @@ public abstract class MyAbstractHttpHandler implements HttpHandler {
 
     protected abstract void handlePost(HttpExchange exchange) throws IOException;
 
+    protected void checkContentTypeHeader(HttpExchange exchange) {
+        boolean containsContentType = exchange.getRequestHeaders().containsKey("Content-Type");
+        if (!containsContentType || !exchange.getRequestHeaders().get("Content-Type").contains("application/json")) {
+            throw new HttpUnsupportedMediaTypeException("Only application/json type is allowed", "invalid_json");
+        }
+    }
+
     protected void sendText(HttpExchange exchange, String responseText, Integer responseCode) throws IOException {
         exchange.sendResponseHeaders(responseCode, responseText.getBytes().length);
         exchange.getResponseHeaders().add("Content-Type", "application/json;charset=utf-8");

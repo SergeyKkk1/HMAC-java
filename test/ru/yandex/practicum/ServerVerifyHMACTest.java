@@ -19,13 +19,12 @@ class ServerVerifyHMACTest extends BaseServerTest {
     private static final String TEST_MESSAGE = "Int test message";
 
     private ServerHMAC serverHMAC;
-    private ConfigStorage.ConfigHMAC config;
 
     @BeforeEach
     public void setUp() throws IOException, NoSuchAlgorithmException, InvalidKeyException {
         var log = new PrintWriter(System.out, true);
-        config = new ConfigStorage(log).load();
-        serverHMAC = new ServerHMAC(config, log);
+        ConfigStorage configStorage = new ConfigStorage(log);
+        serverHMAC = new ServerHMAC(configStorage, log);
         serverHMAC.run();
     }
 
@@ -37,7 +36,7 @@ class ServerVerifyHMACTest extends BaseServerTest {
     @ParameterizedTest
     @ValueSource(strings = {"", "Not base64 signature"})
     public void testVerifyUnsuccessful_signatureNotBase64(String signature) {
-        HandlerVerifyHMAC.VerifyRequest verifyRequest = new HandlerVerifyHMAC.VerifyRequest(TEST_MESSAGE, signature);
+        VerifyRequest verifyRequest = new VerifyRequest(TEST_MESSAGE, signature);
         String jsonVerifyRequest = GSON.toJson(verifyRequest);
 
         HttpResponse<String> verifyResponseHttp = post("/verify", jsonVerifyRequest);
@@ -49,8 +48,8 @@ class ServerVerifyHMACTest extends BaseServerTest {
 
     @Test
     public void testVerifyHMAC_tooLongMessage() {
-        config.setMaxMsgSizeBytes(1);
-        HandlerVerifyHMAC.VerifyRequest verifyRequest = new HandlerVerifyHMAC.VerifyRequest(TEST_MESSAGE, "signature");
+        serverHMAC.getConfigHMAC().setMaxMsgSizeBytes(1);
+        VerifyRequest verifyRequest = new VerifyRequest(TEST_MESSAGE, "signature");
         String jsonVerifyRequest = GSON.toJson(verifyRequest);
 
         HttpResponse<String> response = post("/verify", jsonVerifyRequest);

@@ -24,9 +24,10 @@ public class TimingAttackTest {
     @BeforeEach
     public void setUp() throws IOException, NoSuchAlgorithmException, InvalidKeyException {
         var log = new PrintWriter(System.out, true);
-        ConfigStorage.ConfigHMAC config = new ConfigStorage(log).load();
-        serverHMAC = new ServerHMAC(config, log);
-        serviceHMAC = new ServiceHMAC(config, log);
+        ConfigStorage configStorage = new ConfigStorage(log);
+        ConfigStorage.ConfigHMAC config = configStorage.load();
+        serverHMAC = new ServerHMAC(configStorage, log);
+        serviceHMAC = new ServiceHMAC(config);
         serverHMAC.run();
     }
 

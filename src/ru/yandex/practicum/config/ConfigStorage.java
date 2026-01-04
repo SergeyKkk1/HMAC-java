@@ -4,7 +4,14 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 
 public class ConfigStorage {
@@ -22,10 +29,23 @@ public class ConfigStorage {
                 .setPrettyPrinting()
                 .create();
 
-        try (FileInputStream fis = new FileInputStream(CONFIG_FILE); BufferedReader in = new BufferedReader(new InputStreamReader(fis, StandardCharsets.UTF_8))) {
+        try (FileInputStream fis = new FileInputStream(CONFIG_FILE);
+             BufferedReader in = new BufferedReader(new InputStreamReader(fis, StandardCharsets.UTF_8))) {
             ConfigHMAC configHMAC = gson.fromJson(in, new ConfigHMACTypeToken().getType());
             log.println("Loaded config from file: " + CONFIG_FILE);
             return configHMAC;
+        }
+    }
+
+    public void store(ConfigHMAC config) throws IOException {
+        Gson gson = new GsonBuilder()
+                .setPrettyPrinting()
+                .create();
+
+        try (FileOutputStream fos = new FileOutputStream(CONFIG_FILE);
+             BufferedWriter out = new BufferedWriter(new OutputStreamWriter(fos, StandardCharsets.UTF_8))) {
+            gson.toJson(config, out);
+            log.println("Config file updated: " + CONFIG_FILE);
         }
     }
 
@@ -68,7 +88,7 @@ public class ConfigStorage {
         }
     }
 
-    public class ConfigHMACTypeToken  extends TypeToken<ConfigHMAC> {
+    public class ConfigHMACTypeToken extends TypeToken<ConfigHMAC> {
     }
 }
 

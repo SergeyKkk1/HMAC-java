@@ -1,6 +1,6 @@
 {
   "hmacAlg": "HmacSHA256",
-  "secret": "IkRvd24gdGhlIHJhYmJpdCBob2xlLiI=",
-  "listenPort": 8080,
-  "maxMsgSizeBytes": 1048576
+  "secret": "K6TMLrLlDOxww+yqvfRWaJ9neRFJAnBJ31DH4fsZubQ\u003d",
+  "maxMsgSizeBytes": 1048576,
+  "listenPort": 8080
 }

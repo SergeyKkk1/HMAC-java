@@ -6,11 +6,13 @@ import ru.yandex.practicum.config.ConfigStorage;
 import ru.yandex.practicum.config.HelperBase64;
 import ru.yandex.practicum.service.ServiceHMAC;
 
-import java.io.PrintWriter;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ServiceHMACTest {
 
@@ -22,7 +24,7 @@ class ServiceHMACTest {
         config = new ConfigStorage.ConfigHMAC();
         config.setHmacAlg("HmacSHA256");
         config.setSecret("IkRvd24gdGhlIHJhYmJpdCBob2xlLiI=");
-        service = new ServiceHMAC(config, new PrintWriter(System.out, true));
+        service = new ServiceHMAC(config);
     }
 
     @Test
@@ -31,7 +33,7 @@ class ServiceHMACTest {
         config.setHmacAlg("HmacSHA256");
         config.setSecret("");
 
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> new ServiceHMAC(config, new PrintWriter(System.out, true)));
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> new ServiceHMAC(config));
 
         assertTrue(exception.getMessage().contains("Empty key"));
     }

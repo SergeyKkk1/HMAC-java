@@ -39,12 +39,12 @@ public class HandlerSignHMAC extends MyAbstractHttpHandler {
             InputStreamReader streamReader = new InputStreamReader(requestBody, StandardCharsets.UTF_8);
             SignRequest request = gson.fromJson(streamReader, SignRequest.class);
             checkContentTypeHeader(exchange);
-            byte[] requestMsgBytes = request.msg.getBytes(StandardCharsets.UTF_8);
+            byte[] requestMsgBytes = request.getMsg().getBytes(StandardCharsets.UTF_8);
             checkRequestMsg(requestMsgBytes);
             byte[] sign = service.sign(requestMsgBytes);
             SignResponse response = new SignResponse();
             response.setSignature(HelperBase64.encode(sign));
-            log.println(String.format("signed %s, result %s", request.getMsg(), response.getSignature()));
+            log.println(String.format("signed msg length %s, result signature length %s", request.getMsg().length(), response.getSignature().length()));
             exchange.sendResponseHeaders(200, 0);
             try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(responseBody, StandardCharsets.UTF_8))) {
                 gson.toJson(response, writer);
@@ -71,48 +71,4 @@ public class HandlerSignHMAC extends MyAbstractHttpHandler {
         }
     }
 
-    private void checkContentTypeHeader(HttpExchange exchange) {
-        boolean containsContentType = exchange.getRequestHeaders().containsKey("Content-Type");
-        if (!containsContentType || !exchange.getRequestHeaders().get("Content-Type").contains("application/json")) {
-            throw new HttpUnsupportedMediaTypeException("Only application/json type is allowed", "invalid_json");
-        }
-    }
-
-    public static class SignRequest {
-        public SignRequest(String msg) {
-            this.msg = msg;
-        }
-
-        public SignRequest() {
-        }
-
-        private String msg;
-
-        public String getMsg() {
-            return msg;
-        }
-
-        public void setMsg(String msg) {
-            this.msg = msg;
-        }
-    }
-
-    public static class SignResponse {
-        String signature;
-
-        public SignResponse(String signature) {
-            this.signature = signature;
-        }
-
-        public SignResponse() {
-        }
-
-        public String getSignature() {
-            return signature;
-        }
-
-        public void setSignature(String signature) {
-            this.signature = signature;
-        }
-    }
 }

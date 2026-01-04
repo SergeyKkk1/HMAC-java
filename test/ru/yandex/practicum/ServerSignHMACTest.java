@@ -27,14 +27,14 @@ class ServerSignHMACTest extends BaseServerTest {
 
     private ServerHMAC serverHMAC;
     private ServiceHMAC serviceHMAC;
-    private ConfigStorage.ConfigHMAC config;
 
     @BeforeEach
     public void setUp() throws IOException, NoSuchAlgorithmException, InvalidKeyException {
         var log = new PrintWriter(System.out, true);
-        config = new ConfigStorage(log).load();
-        serverHMAC = new ServerHMAC(config, log);
-        serviceHMAC = new ServiceHMAC(config, log);
+        ConfigStorage configStorage = new ConfigStorage(log);
+        ConfigStorage.ConfigHMAC config = configStorage.load();
+        serverHMAC = new ServerHMAC(configStorage, log);
+        serviceHMAC = new ServiceHMAC(config);
         serverHMAC.run();
     }
 
@@ -45,74 +45,74 @@ class ServerSignHMACTest extends BaseServerTest {
 
     @Test
     public void testCreateHmacAndVerify() {
-        HandlerSignHMAC.SignRequest signRequest = new HandlerSignHMAC.SignRequest(TEST_MESSAGE);
+        SignRequest signRequest = new SignRequest(TEST_MESSAGE);
         String jsonSingRequest = GSON.toJson(signRequest);
 
         HttpResponse<String> response = post("/sign", jsonSingRequest);
         assertEquals(200, response.statusCode());
-        HandlerSignHMAC.SignResponse signResponse = GSON.fromJson(response.body(), HandlerSignHMAC.SignResponse.class);
+        SignResponse signResponse = GSON.fromJson(response.body(), SignResponse.class);
 
-        HandlerVerifyHMAC.VerifyRequest verifyRequest = new HandlerVerifyHMAC.VerifyRequest(TEST_MESSAGE, signResponse.getSignature());
+        VerifyRequest verifyRequest = new VerifyRequest(TEST_MESSAGE, signResponse.getSignature());
         String jsonVerifyRequest = GSON.toJson(verifyRequest);
         HttpResponse<String> verifyResponseHttp = post("/verify", jsonVerifyRequest);
 
         assertEquals(200, verifyResponseHttp.statusCode());
-        HandlerVerifyHMAC.VerifyResponse verifyResponse = GSON.fromJson(verifyResponseHttp.body(), HandlerVerifyHMAC.VerifyResponse.class);
+        VerifyResponse verifyResponse = GSON.fromJson(verifyResponseHttp.body(), VerifyResponse.class);
         assertTrue(verifyResponse.isOk());
     }
 
     @Test
     public void testCreateHmacAndVerifyUnsuccessful_wrongSignature() {
-        HandlerSignHMAC.SignRequest signRequest = new HandlerSignHMAC.SignRequest(TEST_MESSAGE);
+        SignRequest signRequest = new SignRequest(TEST_MESSAGE);
         String jsonSingRequest = GSON.toJson(signRequest);
 
         HttpResponse<String> response = post("/sign", jsonSingRequest);
         assertEquals(200, response.statusCode());
-        HandlerSignHMAC.SignResponse signResponse = GSON.fromJson(response.body(), HandlerSignHMAC.SignResponse.class);
+        SignResponse signResponse = GSON.fromJson(response.body(), SignResponse.class);
 
-        HandlerVerifyHMAC.VerifyRequest verifyRequest = new HandlerVerifyHMAC.VerifyRequest(TEST_MESSAGE, "A" + signResponse.getSignature().substring(1));
+        VerifyRequest verifyRequest = new VerifyRequest(TEST_MESSAGE, "A" + signResponse.getSignature().substring(1));
         String jsonVerifyRequest = GSON.toJson(verifyRequest);
         HttpResponse<String> verifyResponseHttp = post("/verify", jsonVerifyRequest);
 
         assertEquals(200, verifyResponseHttp.statusCode());
-        HandlerVerifyHMAC.VerifyResponse verifyResponse = GSON.fromJson(verifyResponseHttp.body(), HandlerVerifyHMAC.VerifyResponse.class);
+        VerifyResponse verifyResponse = GSON.fromJson(verifyResponseHttp.body(), VerifyResponse.class);
         assertFalse(verifyResponse.isOk());
     }
 
     @Test
     public void testCreateHmacAndVerifyUnsuccessful_wrongMessage() {
-        HandlerSignHMAC.SignRequest signRequest = new HandlerSignHMAC.SignRequest(TEST_MESSAGE);
+        SignRequest signRequest = new SignRequest(TEST_MESSAGE);
         String jsonSingRequest = GSON.toJson(signRequest);
 
         HttpResponse<String> response = post("/sign", jsonSingRequest);
         assertEquals(200, response.statusCode());
-        HandlerSignHMAC.SignResponse signResponse = GSON.fromJson(response.body(), HandlerSignHMAC.SignResponse.class);
+        SignResponse signResponse = GSON.fromJson(response.body(), SignResponse.class);
 
-        HandlerVerifyHMAC.VerifyRequest verifyRequest = new HandlerVerifyHMAC.VerifyRequest(TEST_MESSAGE.substring(1), signResponse.getSignature());
+        VerifyRequest verifyRequest = new VerifyRequest(TEST_MESSAGE.substring(1), signResponse.getSignature());
         String jsonVerifyRequest = GSON.toJson(verifyRequest);
         HttpResponse<String> verifyResponseHttp = post("/verify", jsonVerifyRequest);
 
         assertEquals(200, verifyResponseHttp.statusCode());
-        HandlerVerifyHMAC.VerifyResponse verifyResponse = GSON.fromJson(verifyResponseHttp.body(), HandlerVerifyHMAC.VerifyResponse.class);
+        VerifyResponse verifyResponse = GSON.fromJson(verifyResponseHttp.body(), VerifyResponse.class);
         assertFalse(verifyResponse.isOk());
     }
 
     @Test
     public void testCreateHMAC() {
-        HandlerSignHMAC.SignRequest signRequest = new HandlerSignHMAC.SignRequest(TEST_MESSAGE);
+        SignRequest signRequest = new SignRequest(TEST_MESSAGE);
         String jsonSingRequest = GSON.toJson(signRequest);
 
         HttpResponse<String> response = post("/sign", jsonSingRequest);
 
         assertEquals(200, response.statusCode());
-        HandlerSignHMAC.SignResponse signResponse = GSON.fromJson(response.body(), HandlerSignHMAC.SignResponse.class);
+        SignResponse signResponse = GSON.fromJson(response.body(), SignResponse.class);
         byte[] actualSignatureBytes = HelperBase64.decode(signResponse.getSignature());
         assertTrue(serviceHMAC.verify(signRequest.getMsg().getBytes(StandardCharsets.UTF_8), actualSignatureBytes));
     }
 
     @Test
     public void testCreateHMAC_deterministic() {
-        HandlerSignHMAC.SignRequest signRequest = new HandlerSignHMAC.SignRequest(TEST_MESSAGE);
+        SignRequest signRequest = new SignRequest(TEST_MESSAGE);
         String jsonSingRequest = GSON.toJson(signRequest);
 
         HttpResponse<String> response1 = post("/sign", jsonSingRequest);
@@ -120,14 +120,14 @@ class ServerSignHMACTest extends BaseServerTest {
 
         assertEquals(200, response1.statusCode());
         assertEquals(200, response2.statusCode());
-        HandlerSignHMAC.SignResponse signResponse1 = GSON.fromJson(response1.body(), HandlerSignHMAC.SignResponse.class);
-        HandlerSignHMAC.SignResponse signResponse2 = GSON.fromJson(response2.body(), HandlerSignHMAC.SignResponse.class);
+        SignResponse signResponse1 = GSON.fromJson(response1.body(), SignResponse.class);
+        SignResponse signResponse2 = GSON.fromJson(response2.body(), SignResponse.class);
         assertEquals(signResponse1.getSignature(), signResponse2.getSignature());
     }
 
     @Test
     public void testCreateHMAC_invalidMsg() {
-        HandlerSignHMAC.SignRequest signRequest = new HandlerSignHMAC.SignRequest("");
+        SignRequest signRequest = new SignRequest("");
         String jsonSingRequest = GSON.toJson(signRequest);
 
         HttpResponse<String> response = post("/sign", jsonSingRequest);
@@ -139,8 +139,8 @@ class ServerSignHMACTest extends BaseServerTest {
 
     @Test
     public void testCreateHMAC_tooLongMessage() {
-        config.setMaxMsgSizeBytes(1);
-        HandlerSignHMAC.SignRequest signRequest = new HandlerSignHMAC.SignRequest(TEST_MESSAGE);
+        serverHMAC.getConfigHMAC().setMaxMsgSizeBytes(1);
+        SignRequest signRequest = new SignRequest(TEST_MESSAGE);
         String jsonSingRequest = GSON.toJson(signRequest);
 
         HttpResponse<String> response = post("/sign", jsonSingRequest);
@@ -152,7 +152,7 @@ class ServerSignHMACTest extends BaseServerTest {
 
     @Test
     public void testCreateHMAC_unsupportedMediaType() throws IOException, InterruptedException {
-        HandlerSignHMAC.SignRequest signRequest = new HandlerSignHMAC.SignRequest(TEST_MESSAGE);
+        SignRequest signRequest = new SignRequest(TEST_MESSAGE);
         String jsonSingRequest = GSON.toJson(signRequest);
 
         HttpRequest postRequest = HttpRequest.newBuilder()
@@ -169,27 +169,29 @@ class ServerSignHMACTest extends BaseServerTest {
 
     @Test
     public void testCreateHMAC_rotatedSecret() {
-        String oldSecret = config.getSecret();
+        ConfigStorage.ConfigHMAC configHMAC = serverHMAC.getConfigHMAC();
+        String oldSecret = configHMAC.getSecret();
+        System.out.println("old secret: " + oldSecret);
         String userInput = "y" + System.lineSeparator() + "exit" + System.lineSeparator();
         System.setIn(new ByteArrayInputStream(userInput.getBytes()));
         serverHMAC.runCommandLoop();
-        String newSecret = config.getSecret();
+        String newSecret = configHMAC.getSecret();
 
         assertNotEquals(oldSecret, newSecret);
 
-        HandlerSignHMAC.SignRequest signRequest = new HandlerSignHMAC.SignRequest(TEST_MESSAGE);
+        SignRequest signRequest = new SignRequest(TEST_MESSAGE);
         String jsonSingRequest = GSON.toJson(signRequest);
 
         HttpResponse<String> response = post("/sign", jsonSingRequest);
         assertEquals(200, response.statusCode());
-        HandlerSignHMAC.SignResponse signResponse = GSON.fromJson(response.body(), HandlerSignHMAC.SignResponse.class);
+        SignResponse signResponse = GSON.fromJson(response.body(), SignResponse.class);
 
-        HandlerVerifyHMAC.VerifyRequest verifyRequest = new HandlerVerifyHMAC.VerifyRequest(TEST_MESSAGE, signResponse.getSignature());
+        VerifyRequest verifyRequest = new VerifyRequest(TEST_MESSAGE, signResponse.getSignature());
         String jsonVerifyRequest = GSON.toJson(verifyRequest);
         HttpResponse<String> verifyResponseHttp = post("/verify", jsonVerifyRequest);
 
         assertEquals(200, verifyResponseHttp.statusCode());
-        HandlerVerifyHMAC.VerifyResponse verifyResponse = GSON.fromJson(verifyResponseHttp.body(), HandlerVerifyHMAC.VerifyResponse.class);
+        VerifyResponse verifyResponse = GSON.fromJson(verifyResponseHttp.body(), VerifyResponse.class);
         assertTrue(verifyResponse.isOk());
     }
 }

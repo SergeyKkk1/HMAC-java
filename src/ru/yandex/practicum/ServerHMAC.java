@@ -18,12 +18,15 @@ import java.util.Scanner;
 
 public class ServerHMAC {
 
-    private final ConfigStorage.ConfigHMAC config;
+    private final ConfigStorage configStorage;
+
+    private final ConfigStorage.ConfigHMAC configHMAC;
     private final PrintWriter log;
     private HttpServer server;
 
-    public ServerHMAC(ConfigStorage.ConfigHMAC config, PrintWriter log) {
-        this.config = config;
+    public ServerHMAC(ConfigStorage configStorage, PrintWriter log) throws IOException {
+        this.configStorage = configStorage;
+        this.configHMAC = configStorage.load();
         this.log = log;
     }
 
@@ -32,7 +35,7 @@ public class ServerHMAC {
             PrintWriter log = new PrintWriter(writer, true);
             //log = new PrintWriter(System.out, true); //TODO comment on commit
             try {
-                ConfigStorage.ConfigHMAC config = new ConfigStorage(log).load();
+                ConfigStorage config = new ConfigStorage(log);
                 ServerHMAC serverHMAC = new ServerHMAC(config, log);
                 serverHMAC.run();
                 serverHMAC.runCommandLoop();
@@ -46,10 +49,10 @@ public class ServerHMAC {
 
     public void run() throws IOException, NoSuchAlgorithmException, InvalidKeyException {
         server = HttpServer.create();
-        ServiceHMAC service = new ServiceHMAC(config, log);
-        server.bind(new InetSocketAddress(config.getListenPort()), 0);
-        server.createContext("/sign", new HandlerSignHMAC(service, config, log));
-        server.createContext("/verify", new HandlerVerifyHMAC(service, config, log));
+        ServiceHMAC service = new ServiceHMAC(configHMAC);
+        server.bind(new InetSocketAddress(configHMAC.getListenPort()), 0);
+        server.createContext("/sign", new HandlerSignHMAC(service, configHMAC, log));
+        server.createContext("/verify", new HandlerVerifyHMAC(service, configHMAC, log));
         server.start();
         log.println("HMAC Server Started");
     }
@@ -78,9 +81,19 @@ public class ServerHMAC {
         }
     }
 
+    public ConfigStorage.ConfigHMAC getConfigHMAC() {
+        return configHMAC;
+    }
+
     private void secretRotation() {
         String newSecret = SecretGenerator.generate();
-        config.setSecret(newSecret);
+        configHMAC.setSecret(newSecret);
+        System.out.println("New secret: " + newSecret);
+        try {
+            configStorage.store(configHMAC);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void stop() {

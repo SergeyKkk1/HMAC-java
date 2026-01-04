@@ -33,6 +33,7 @@ public class HandlerVerifyHMAC extends MyAbstractHttpHandler {
         try {
             InputStream requestBody = exchange.getRequestBody();
             OutputStream responseBody = exchange.getResponseBody();
+            checkContentTypeHeader(exchange);
             Gson gson = new GsonBuilder()
                     .setPrettyPrinting()
                     .create();
@@ -42,11 +43,16 @@ public class HandlerVerifyHMAC extends MyAbstractHttpHandler {
             boolean ok = service.verify(request.getMsg().getBytes(StandardCharsets.UTF_8), HelperBase64.decode(request.getSignature()));
             VerifyResponse response = new VerifyResponse();
             response.setOk(ok);
-            log.println(String.format("verified %s signed %s, result %b", request.getMsg(), request.getSignature(), ok));
+            log.println(String.format("verified msg length %s sign length %s, result %b", request.getMsg().length(),
+                    request.getSignature().length(), ok));
             exchange.sendResponseHeaders(200, 0);
             try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(responseBody, StandardCharsets.UTF_8))) {
                 gson.toJson(response, writer);
             }
+        } catch (HttpUnsupportedMediaTypeException e) {
+            ErrorMessageDto errorMsg = new ErrorMessageDto(e.getError());
+            sendText(exchange, GSON.toJson(errorMsg), 415);
+            e.printStackTrace(new PrintStream(exchange.getResponseBody()));
         } catch (EmptyMessageException e) {
             ErrorMessageDto errorMsg = new ErrorMessageDto(e.getError());
             sendText(exchange, GSON.toJson(errorMsg), 400);
@@ -78,51 +84,4 @@ public class HandlerVerifyHMAC extends MyAbstractHttpHandler {
         }
     }
 
-    static class VerifyRequest {
-        String msg;
-        String signature;
-
-        public VerifyRequest(String msg, String signature) {
-            this.msg = msg;
-            this.signature = signature;
-        }
-
-        public VerifyRequest() {
-        }
-
-        public String getMsg() {
-            return msg;
-        }
-
-        public void setMsg(String msg) {
-            this.msg = msg;
-        }
-
-        public String getSignature() {
-            return signature;
-        }
-
-        public void setSignature(String signature) {
-            this.signature = signature;
-        }
-    }
-
-    static class VerifyResponse {
-        private boolean ok;
-
-        public VerifyResponse(boolean ok) {
-            this.ok = ok;
-        }
-
-        public VerifyResponse() {
-        }
-
-        public boolean isOk() {
-            return ok;
-        }
-
-        public void setOk(boolean ok) {
-            this.ok = ok;
-        }
-    }
 }
